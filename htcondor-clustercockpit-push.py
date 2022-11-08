@@ -9,6 +9,7 @@
 #
 # -- Michael Schwarz <schwarz@uni-paderborn.de>
 
+import platform
 import subprocess
 import json
 import time
@@ -71,10 +72,15 @@ class CondorSync:
     config = {}
     debug = False
     ccapi = None
+    submit_node = ''
 
     def __init__(self, config, debug=False):
         self.config = config
         self.debug = debug
+        if 'submitnode' in config['htcondor']:
+            self.submit_node = config['htcondor']['submitnode']
+        else:
+            self.submit_node = platform.node()
 
         # validate config TODO
         if "htcondor" not in config:
@@ -305,8 +311,12 @@ class CondorSync:
         ccjob = self.ccapi.startJob(data)
 
     def _ccStopJob(self, job):
-        print("INFO: Stop job %s" % job['GlobalJobId'])
-        jobId = self._jobIdToInt(job['GlobalJobId'])
+        if 'GlobalJobID' in job:
+            globalJobId = job['GlobalJobId']
+        else:
+            globalJobId = "%s#%d.%d#%d" % (self.submit_node, job['Cluster'], job['Proc'], int(time.time()))
+        print("INFO: Stop job %s" % globalJobId)
+        jobId = self._jobIdToInt(globalJobId)
 
         # get search for the jobdata stored in CC
         # ccjob = {}
@@ -360,10 +370,11 @@ class CondorSync:
         data = {
             'jobId': jobId,
             'cluster': self.config['cluster'],
-            'startTime': job['JobCurrentStartDate'],
             'stopTime': job['ToE']['When'],
             'jobState': jobstate
         }
+        if 'JobCurrentStartDate' in job:
+            data['startTime'] = job['JobCurrentStartDate']
 
         self.ccapi.stopJob(data)
 
@@ -381,8 +392,10 @@ class CondorSync:
         if event['EventTypeNumber'] == 28:  # JobAdInformationEvent
             if event['TriggerEventTypeNumber'] == 1:  # Execute
                 self._ccStartJob(event)
-            elif event['TriggerEventTypeNumber'] == 4 or event['TriggerEventTypeNumber'] == 5 or \
-                    event['TriggerEventTypeNumber'] == 9:
+            # elif event['TriggerEventTypeNumber'] == 4 or
+            elif event['TriggerEventTypeNumber'] == 5 or \
+                    event['TriggerEventTypeNumber'] == 9 or event['TriggerEventTypeNumber'] == 10 or \
+                    event['TriggerEventTypeNumber'] == 12:
                 self._ccStopJob(event)
 
     def sync(self, limit=200, jobid=None, direction='both'):
