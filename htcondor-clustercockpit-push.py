@@ -364,7 +364,7 @@ class CondorSync:
         #             # time as new end time. Otherwise CC refuses to end the job.
         #             endtime = int(ccjob['startTime']) + 1
 
-        jobstate_map = {4: "canceled", 5: "completed",
+        jobstate_map = {4: "cancelled", 5: "completed",
                         9: "failed", 10: "stopped", 12: "stopped"}
         jobstate = jobstate_map[job['TriggerEventTypeNumber']]
 
