@@ -9,6 +9,7 @@
 #
 # -- Michael Schwarz <schwarz@uni-paderborn.de>
 
+from dateutil import parser as dateparser
 import platform
 import subprocess
 import json
@@ -52,7 +53,7 @@ class CCApi:
             return r.json()
         else:
             print(data)
-            print(r)
+            print(r.status_code, r.content)
             return False
 
     def getJobs(self, filter_running=True):
@@ -370,9 +371,13 @@ class CondorSync:
         data = {
             'jobId': jobId,
             'cluster': self.config['cluster'],
-            'stopTime': job['ToE']['When'],
             'jobState': jobstate
         }
+        if 'ToE' in job:
+            data['stopTime'] = job['ToE']['When']
+        else:
+            data['stopTime'] = int(time.mktime(dateparser.parse(job['EventTime']).timetuple()))
+
         if 'JobCurrentStartDate' in job:
             data['startTime'] = job['JobCurrentStartDate']
 
@@ -392,8 +397,7 @@ class CondorSync:
         if event['EventTypeNumber'] == 28:  # JobAdInformationEvent
             if event['TriggerEventTypeNumber'] == 1:  # Execute
                 self._ccStartJob(event)
-            # elif event['TriggerEventTypeNumber'] == 4 or
-            elif event['TriggerEventTypeNumber'] == 5 or \
+            elif event['TriggerEventTypeNumber'] == 4 or event['TriggerEventTypeNumber'] == 5 or \
                     event['TriggerEventTypeNumber'] == 9 or event['TriggerEventTypeNumber'] == 10 or \
                     event['TriggerEventTypeNumber'] == 12:
                 self._ccStopJob(event)
