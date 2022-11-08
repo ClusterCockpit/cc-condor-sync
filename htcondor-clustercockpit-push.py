@@ -259,7 +259,7 @@ class CondorSync:
 
         # is this part of an array job?
         if job['Cluster'] > 0:
-            data.update({"arrayJobId": job['Cluster']})
+            data.update({"arrayJobId": job['Cluster']}) # todo: offset by submit node!
 
         num_acc = 0
         for node in nodelist:
