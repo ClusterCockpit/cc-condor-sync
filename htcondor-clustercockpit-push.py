@@ -130,6 +130,10 @@ class CondorSync:
         command = "%s -j %s --json" % (self.config['slurm']['sacct'], jobid)
         return json.loads(self._exec(command))
 
+    def _getSubmitNodeId(self, globalJobId):
+        job_id_parts = globalJobId.split('#')
+        return self.config['htcondor']['submitnodes'][job_id_parts[0].split('.')[0]]
+
     def _jobIdInCC(self, jobid):
         for job in self.ccData['jobs']:
             if jobid == job['jobId']:
@@ -138,10 +142,8 @@ class CondorSync:
 
     def _jobIdToInt(self, globalJobId):
         job_id_parts = globalJobId.split('#')
-        submit = self.config['htcondor']['submitnodes'][job_id_parts[0].split('.')[
-            0]]
         cluster_id, proc_id = [int(id) for id in job_id_parts[1].split('.')]
-        return cluster_id << 32 | ((proc_id & 0x3FFFFFFF) << 2) | submit
+        return cluster_id << 32 | ((proc_id & 0x3FFFFFFF) << 2) | self._getSubmitNodeId(globalJobId)
 
     def _jobRunning(self, jobid):
         for job in self.slurmJobData['jobs']:
@@ -271,7 +273,8 @@ class CondorSync:
 
         # is this part of an array job?
         if job['Cluster'] > 0:
-            data.update({"arrayJobId": job['Cluster']}) # todo: offset by submit node!
+            data.update(
+                {"arrayJobId": job['Cluster'] * 10 + self._getSubmitNodeId(job['GlobalJobId'])})
 
         num_acc = 0
         for node in nodelist:
@@ -320,7 +323,8 @@ class CondorSync:
         if 'GlobalJobID' in job:
             globalJobId = job['GlobalJobId']
         else:
-            globalJobId = "%s#%d.%d#%d" % (self.submit_node, job['Cluster'], job['Proc'], int(time.time()))
+            globalJobId = "%s#%d.%d#%d" % (
+                self.submit_node, job['Cluster'], job['Proc'], int(time.time()))
         print("INFO: Stop job %s" % globalJobId)
         jobId = self._jobIdToInt(globalJobId)
 
@@ -382,9 +386,11 @@ class CondorSync:
             if isinstance(job['ToE']['When'], int):
                 data['stopTime'] = job['ToE']['When']
             else:
-                data['stopTime'] = int(time.mktime(dateparser.parse(job['ToE']['When']).timetuple()))
+                data['stopTime'] = int(time.mktime(
+                    dateparser.parse(job['ToE']['When']).timetuple()))
         else:
-            data['stopTime'] = int(time.mktime(dateparser.parse(job['EventTime']).timetuple()))
+            data['stopTime'] = int(time.mktime(
+                dateparser.parse(job['EventTime']).timetuple()))
 
         if 'JobCurrentStartDate' in job:
             data['startTime'] = job['JobCurrentStartDate']
@@ -440,9 +446,9 @@ class CondorSync:
                     elif event is tailf.Truncated:
                         print("File was truncated")
                     else:
-                        assert False, "unreachable" # currently. more events may be introduced later
-                time.sleep(5) # save CPU cycles
-        
+                        assert False, "unreachable"  # currently. more events may be introduced later
+                time.sleep(5)  # save CPU cycles
+
         with open(self.config['htcondor']['eventlog'], 'r', encoding='utf-8') as f:
             eventlog = f.read()
 
