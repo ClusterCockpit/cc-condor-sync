@@ -24,6 +24,7 @@ class CCApi:
     apiurl = ''
     apikey = ''
     headers = {}
+    debug = False
 
     def __init__(self, config, debug=False):
         self.config = config
@@ -32,6 +33,7 @@ class CCApi:
         self.headers = {'accept': 'application/ld+json',
                         'Content-Type': 'application/json',
                         'Authorization': 'Bearer %s' % self.config['cc-backend']['apikey']}
+        self.debug = debug
 
     def startJob(self, data):
         url = self.apiurl+"jobs/start_job/"
@@ -39,6 +41,9 @@ class CCApi:
         if r.status_code == 201:
             return r.json()
         elif r.status_code == 422:
+            if self.debug:
+                print(data)
+                print(r.status_code, r.content)
             return False
         else:
             print(data)
@@ -365,7 +370,7 @@ class CondorSync:
         #             endtime = int(ccjob['startTime']) + 1
 
         jobstate_map = {4: "cancelled", 5: "completed",
-                        9: "failed", 10: "stopped", 12: "stopped"}
+                        9: "cancelled", 10: "stopped", 12: "stopped"}
         jobstate = jobstate_map[job['TriggerEventTypeNumber']]
 
         data = {
@@ -374,12 +379,18 @@ class CondorSync:
             'jobState': jobstate
         }
         if 'ToE' in job:
-            data['stopTime'] = job['ToE']['When']
+            if isinstance(job['ToE']['When'], int):
+                data['stopTime'] = job['ToE']['When']
+            else:
+                data['stopTime'] = int(time.mktime(dateparser.parse(job['ToE']['When']).timetuple()))
         else:
             data['stopTime'] = int(time.mktime(dateparser.parse(job['EventTime']).timetuple()))
 
         if 'JobCurrentStartDate' in job:
             data['startTime'] = job['JobCurrentStartDate']
+
+        if self.debug:
+            print(data)
 
         self.ccapi.stopJob(data)
 
