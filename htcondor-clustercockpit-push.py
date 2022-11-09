@@ -198,9 +198,9 @@ class CondorSync:
         print("INFO: Create job %s, user %s, name %s" %
               (job['GlobalJobId'], job['Owner'], job['JobBatchName'] if 'JobBatchName' in job else ''))
         jobId = self._jobIdToInt(job['GlobalJobId'])
-        for j in self.ccData['jobs']:
-            if j['jobId'] == jobId:
-                return
+        # for j in self.ccData['jobs']:
+        #     if j['jobId'] == jobId:
+        #         return
 
         nodelist = [job['RemoteHost'].split('@')[1]]
 
@@ -418,7 +418,7 @@ class CondorSync:
             print("DEBUG: sync called")
             print("DEBUG: jobid %s" % jobid)
 
-        self._readCCData()
+        # self._readCCData()
 
         with tailf.Tail(self.config['htcondor']['eventlog']) as tail:
             remaining = ""
