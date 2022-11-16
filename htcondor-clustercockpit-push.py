@@ -373,8 +373,8 @@ class CondorSync:
         #             # time as new end time. Otherwise CC refuses to end the job.
         #             endtime = int(ccjob['startTime']) + 1
 
-        jobstate_map = {4: "cancelled", 5: "completed",
-                        9: "cancelled", 10: "stopped", 12: "stopped"}
+        jobstate_map = {4: "cancelled", 5: "completed", 9: "cancelled",
+                        10: "stopped", 12: "stopped", 24: "failed"}
         jobstate = jobstate_map[job['TriggerEventTypeNumber']]
 
         data = {
@@ -416,7 +416,7 @@ class CondorSync:
                 self._ccStartJob(event)
             elif event['TriggerEventTypeNumber'] == 4 or event['TriggerEventTypeNumber'] == 5 or \
                     event['TriggerEventTypeNumber'] == 9 or event['TriggerEventTypeNumber'] == 10 or \
-                    event['TriggerEventTypeNumber'] == 12:
+                    event['TriggerEventTypeNumber'] == 12 or event['TriggerEventTypeNumber'] == 24:
                 self._ccStopJob(event)
 
     def sync(self, limit=200, jobid=None, direction='both'):
