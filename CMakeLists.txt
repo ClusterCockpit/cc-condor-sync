@@ -22,7 +22,7 @@ endif()
 add_subdirectory(curlpp)
 set_property(TARGET curlpp_static PROPERTY POSITION_INDEPENDENT_CODE ON)
 
-add_library(htcondor_cc_sync_plugin MODULE htcondor_cc_sync_plugin.cpp)
+add_library(htcondor_cc_sync_plugin MODULE src/htcondor_cc_sync_plugin.cpp)
 
 target_include_directories(htcondor_cc_sync_plugin PRIVATE
     ${CONDOR_SRC_SRC}
