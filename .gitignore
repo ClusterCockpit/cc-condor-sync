@@ -1,2 +1,4 @@
 .vscode
 config.json
+*build*/
+.cache/
