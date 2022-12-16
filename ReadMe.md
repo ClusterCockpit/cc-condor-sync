@@ -38,3 +38,5 @@ CCSYNC_SUBMIT_ID=<Unique submission node id, expected to be in 0..3 (see #global
     }
 }
 ```
+
+For getting a debug dump of the class ads at the end of the `endTransaction`, build with `-DVERBOSE` (automatically set for `Debug` or `RelWithDebInfo` builds) and set `SCHEDD_DEBUG=D_FULLDEBUG` in the condor config.

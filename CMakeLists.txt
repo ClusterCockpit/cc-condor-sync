@@ -42,3 +42,5 @@ target_include_directories(htcondor_cc_sync_plugin PRIVATE ${CMAKE_SOURCE_DIR}/c
 
 target_compile_options(htcondor_cc_sync_plugin PRIVATE
     -DCONDOR_VERSION=\"10.0.0\" -DENABLE_STATE_DUMP -DGLIBC219=GLIBC219 -DGLIBC=GLIBC -DHAVE_CONFIG_H -DLINUX=\"LINUX_3.13.0-30-GENERIC\" -DPLATFORM=\"X86_64-Linux_17\" -DPRE_RELEASE_STR=\"\" -DWITH_OPENSSL -DX86_64=X86_64 -Dcondorapi_shared_EXPORTS -DWITH_IPV6)
+
+target_compile_definitions(htcondor_cc_sync_plugin PRIVATE $<$<OR:$<STREQUAL:${CMAKE_BUILD_TYPE},Debug>,$<STREQUAL:${CMAKE_BUILD_TYPE},RelWithDebInfo>>:VERBOSE>)
