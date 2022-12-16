@@ -267,12 +267,19 @@ std::string getRemoteHost(std::string_view slot) {
   return {++atIt, subIt};
 }
 
+std::string removeQuotes(const std::string &value) {
+  if (value[0] == '"' && value.back() == '"') {
+    return value.substr(1, value.size() - 2);
+  }
+  return value;
+}
+
 std::vector<std::string>
 CCSyncPlugin::getAccelerators(const CondorJob &job,
                               const std::string &hostname) {
   if (auto hostIt = gpuMap.find(hostname); hostIt != gpuMap.end()) {
     if (auto gpuIt = job.find("AssignedGPUs"); gpuIt != job.end()) {
-      std::istringstream gpuStream{gpuIt->second};
+      std::istringstream gpuStream{removeQuotes(gpuIt->second)};
       std::vector<std::string> gpus;
       std::string gpu;
       while (std::getline(gpuStream, gpu, ',')) {
@@ -311,13 +318,6 @@ bool jobHasRequiredClassAds(const CondorJob &job) {
          jobHasClassAd(job, "JobCurrentStartDate") &&
          jobHasClassAd(job, "AcctGroup") && jobHasClassAd(job, "Owner") &&
          jobHasClassAd(job, "EnteredCurrentStatus");
-}
-
-std::string removeQuotes(const std::string &value) {
-  if (value[0] == '"' && value.back() == '"') {
-    return value.substr(1, value.size() - 2);
-  }
-  return value;
 }
 
 void CCSyncPlugin::sendPostRequest(const std::string &route,

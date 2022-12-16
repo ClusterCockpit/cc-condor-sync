@@ -17,10 +17,14 @@ if __name__ == "__main__":
 
     slot_gpu_map = {}
     for slot in condor_status:
-        machine = slot["Machine"]
+        machine = slot["Machine"].split('.')[0]
         gpu_map = {}
         if machine in slot_gpu_map:
             gpu_map = slot_gpu_map[machine]
+        else:
+            slot_gpu_map[machine] = {}
+        if not "AssignedGPUs" in slot:
+            continue
         gpus = slot["AssignedGPUs"].split(',')
         for gpu_id in gpus:
             gpu = slot["GPUs_" + gpu_id.strip().replace("-", "_")]
