@@ -40,11 +40,8 @@ using namespace std;
 using namespace nlohmann;
 
 static const std::unordered_map<int, std::string> jobStateMap = {
-    {RUNNING, "running"},
-    {REMOVED, "cancelled"},
-    {HELD, "failed"},
-    {COMPLETED, "completed"},
-    {SUSPENDED, "stopped"}};
+    {IDLE, "failed"}, {RUNNING, "running"},     {REMOVED, "cancelled"},
+    {HELD, "failed"}, {COMPLETED, "completed"}, {SUSPENDED, "stopped"}};
 
 void CCSyncPlugin::earlyInitialize() {
   lock_guard<std::mutex> guard(data_mutex);
@@ -186,13 +183,19 @@ void CCSyncPlugin::setAttribute(const char *key, const char *_name,
       for (auto &jobEntry : currentStatus[clusterId]) {
         int actualProcId = jobEntry.first;
         currentStatus[clusterId][actualProcId][name] = value;
-        // dprintf(D_FULLDEBUG,"[%d.%d] ", clusterId, actualProcId);
+        // dprintf(D_FULLDEBUG, "[%d.%d] %s: %s\n", clusterId, actualProcId,
+        //         name.c_str(), value.c_str());
         if (actualProcId != -1) {
           // dprintf(D_FULLDEBUG,"{%d.%d} ", clusterId, actualProcId);
           if (!initializing) { // HTCondor bug? We should'n be receiving events
-            // before initialization is done. We will ignore
-            // them if it happens.
-            if (name == "CpusProvisioned" || name == "JobStatus")
+            // before initialization is done. We will ignore them if it happens.
+
+            // don't trigger on change to RUNNING, since we want to wait for
+            // RemoteHost and CpusProvisioned to be set as well
+            // If a job is being requeued, this would otherwise potentially
+            // start a job with the wrong host / CPU count..
+            if (name == "CpusProvisioned" ||
+                (name == "JobStatus" && std::stoi(value) != RUNNING))
               toConsider.push_back({clusterId, procId});
           }
         }
@@ -202,10 +205,18 @@ void CCSyncPlugin::setAttribute(const char *key, const char *_name,
       // dprintf(D_FULLDEBUG,"Assigning attribute to JobId %d.%d\n", clusterId,
       // procId);
       currentStatus[clusterId][procId][name] = value;
+      // dprintf(D_FULLDEBUG, "[%d.%d] %s: %s\n", clusterId, procId, name.c_str(),
+      //         value.c_str());
       if (!initializing) { // HTCondor bug? We should'n be receiving events
                            // before initialization is done. We will ignore them
                            // if it happens.
-        if (name == "CpusProvisioned" || name == "JobStatus")
+
+        // don't trigger on change to RUNNING, since we want to wait for
+        // RemoteHost and CpusProvisioned to be set as well
+        // If a job is being requeued, this would otherwise potentially start a
+        // job with the wrong host / CPU count..
+        if (name == "CpusProvisioned" ||
+            (name == "JobStatus" && std::stoi(value) != RUNNING))
           toConsider.push_back({clusterId, procId});
       }
     }
@@ -403,7 +414,7 @@ void CCSyncPlugin::endTransaction() {
         auto jobBatchNameIt = job.find("JobBatchName");
         auto globalJobId = globalJobIdToInt(jobId);
 
-        auto hostname = getRemoteHost(job["RemoteHost"]);
+        auto hostname = getRemoteHost(removeQuotes(job["RemoteHost"]));
         json resources = {{"hostname", hostname}};
         auto accs = getAccelerators(job, hostname);
         if (!accs.empty()) {
@@ -430,8 +441,8 @@ void CCSyncPlugin::endTransaction() {
         sendPostRequest("/api/jobs/start_job/", j.dump());
 
       } else if (lastState == RUNNING &&
-                 (state == REMOVED || state == COMPLETED || state == HELD ||
-                  state == SUSPENDED)) {
+                 (state == IDLE || state == REMOVED || state == COMPLETED ||
+                  state == HELD || state == SUSPENDED)) {
 
         std::uint64_t startTime = std::stoull(job["JobCurrentStartDate"]),
                       stopTime = std::stoull(job["EnteredCurrentStatus"]);
