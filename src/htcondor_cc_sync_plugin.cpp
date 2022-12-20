@@ -428,7 +428,7 @@ void CCSyncPlugin::endTransaction() {
             {"cluster", clusterName},
             {"numNodes", std::stoi(job["CurrentHosts"])},
             {"numHwthreads", std::stoi(job["CpusProvisioned"])},
-            {"startTime", std::stoull(job["EnteredCurrentStatus"])},
+            {"startTime", std::stoull(job["JobCurrentStartDate"])},
             {"project", removeQuotes(job["AcctGroup"])},
             {"partition", "main"},
             {"exclusive", 0},
