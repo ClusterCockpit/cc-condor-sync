@@ -296,7 +296,7 @@ CCSyncPlugin::getAccelerators(const CondorJob &job,
       while (std::getline(gpuStream, gpu, ',')) {
         if (auto gpuIt = hostIt->second.find(gpu);
             gpuIt != hostIt->second.end()) {
-          gpus.push_back(gpuIt->second);
+          gpus.push_back("0000" + gpuIt->second);
         } else {
           dprintf(D_ALWAYS, "Didn't find GPU '%s' for '%s'\n", gpu.c_str(),
                   hostname.c_str());
@@ -400,7 +400,7 @@ void CCSyncPlugin::endTransaction() {
         continue; // not yet ready
 
       dprintf(D_VERBOSE, "JobStatus: %s\n", job["JobStatus"].c_str());
-      int state = std::stoi(job["JobStatus"]), lastState;
+      int state = std::stoi(job["JobStatus"]), lastState{};
 
       if (auto lastStateIt = job.find("LastJobStatus");
           lastStateIt != job.end()) {
