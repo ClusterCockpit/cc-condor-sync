@@ -28,6 +28,6 @@ if __name__ == "__main__":
         gpus = slot["AssignedGPUs"].split(',')
         for gpu_id in gpus:
             gpu = slot["GPUs_" + gpu_id.strip().replace("-", "_")]
-            gpu_map[gpu["Id"]] = gpu["DevicePciBusId"]
+            gpu_map[gpu["Id"]] = "0000" + gpu["DevicePciBusId"]
         slot_gpu_map[machine] = gpu_map
     print(json.dumps(slot_gpu_map))
