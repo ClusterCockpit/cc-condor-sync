@@ -35,12 +35,21 @@ class CCApi:
     def getJobs(self, filter_running=True):
         url = self.apiurl+"jobs/"
         if filter_running:
-            url = url+"?state=running"
-        r = requests.get(url, headers=self.headers)
-        if r.status_code == 200:
-            return r.json()['jobs']
-        else:
-            return []
+            url = url+"?state=running&items-per-page=100"
+        jobs = []
+        page = 1
+        while True:
+            r = requests.get(url + "&page=%d" % page, headers=self.headers)
+            page += 1
+            if r.status_code == 200:
+                new_jobs = r.json()['jobs']
+                if len(new_jobs) < 100:
+                    jobs.extend(new_jobs)
+                    return jobs
+                else:
+                    jobs.extend(new_jobs)
+            else:
+                return []
 
     def _getSubmitNodeId(self, globalJobId):
         job_id_parts = globalJobId.split('#')
@@ -95,11 +104,12 @@ if __name__ == "__main__":
     cc = CCApi(config, args.debug)
 
     condor_jobs = subprocess.run(
-        ["ssh", "conduit2.cs.uni-saarland.de", "condor_q", "-json", "-all", "-glob"], capture_output=True, text=True).stdout
+        ["ssh", "conduit2.cs.uni-saarland.de", "condor_q", "-json", "-all", "-glob", "-constraint", "\"JobStatus == 2\""], capture_output=True, text=True).stdout
     running_jobs = json.loads(condor_jobs)
     
     cc_jobs = cc.getJobs()
-    running_job_dict = {cc._jobIdToInt(job['GlobalJobId']): (job['GlobalJobId'], job['EnteredCurrentStatus']) for job in running_jobs}
+    running_job_dict = {cc._jobIdToInt(job['GlobalJobId']): (job['GlobalJobId'], job['JobCurrentStartDate']) for job in running_jobs}
+    print("CC jobs:", len(cc_jobs), " Condor jobs:", len(running_job_dict))
     for cc_job in cc_jobs:
         startTime = cc_job['startTime']
         if not cc_job['jobId'] in running_job_dict or abs(startTime - running_job_dict[cc_job['jobId']][1]) > 5:
