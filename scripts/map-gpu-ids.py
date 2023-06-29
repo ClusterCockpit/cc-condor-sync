@@ -43,5 +43,5 @@ if __name__ == "__main__":
         machines = fetch_condor_machines()
         mappings = {}
         for machine in machines:
-            mappings[machine] = mapping_for_machine(machine)
+            mappings[machine.split(".")[0]] = mapping_for_machine(machine)
         print(json.dumps(mappings))

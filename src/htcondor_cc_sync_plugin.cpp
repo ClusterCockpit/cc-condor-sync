@@ -46,6 +46,8 @@ static const std::unordered_map<int, std::string> jobStateMap = {
 void CCSyncPlugin::earlyInitialize() {
   lock_guard<std::mutex> guard(data_mutex);
 
+  dprintf(D_ALWAYS, "Early initializing CCSync plugin.\n");
+
   param(url, "CCSYNC_URL");
   if (url.empty())
     dprintf(D_ALWAYS, "WARNING: missing CCSYNC_URL in local config!\n");
@@ -86,7 +88,7 @@ void CCSyncPlugin::earlyInitialize() {
 void CCSyncPlugin::initialize() {
   lock_guard<std::mutex> guard(data_mutex);
 
-  //   dprintf(D_ALWAYS, "Initializing TCP Forwarding plugin.\n");
+  dprintf(D_ALWAYS, "Initializing CCSync plugin.\n");
   initializing = false;
 }
 
@@ -205,7 +207,8 @@ void CCSyncPlugin::setAttribute(const char *key, const char *_name,
       // dprintf(D_FULLDEBUG,"Assigning attribute to JobId %d.%d\n", clusterId,
       // procId);
       currentStatus[clusterId][procId][name] = value;
-      // dprintf(D_FULLDEBUG, "[%d.%d] %s: %s\n", clusterId, procId, name.c_str(),
+      // dprintf(D_FULLDEBUG, "[%d.%d] %s: %s\n", clusterId, procId,
+      // name.c_str(),
       //         value.c_str());
       if (!initializing) { // HTCondor bug? We should'n be receiving events
                            // before initialization is done. We will ignore them
