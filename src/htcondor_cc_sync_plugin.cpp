@@ -450,6 +450,15 @@ void CCSyncPlugin::endTransaction() {
         std::uint64_t startTime = std::stoull(job["JobCurrentStartDate"]),
                       stopTime = std::stoull(job["EnteredCurrentStatus"]);
 
+        std::string jobState = jobStateMap.at(state);
+        if (state == HELD && jobHasClassAd(job, "HoldReasonCode") &&
+            std::stoul(job["HoldReasonCode"]) == 3 &&
+            jobHasClassAd(job, "HoldReasonSubCode") &&
+            (std::stoul(job["HoldReasonSubCode"]) == 12 ||
+             std::stoul(job["HoldReasonSubCode"]) == 24)) {
+          jobState = "timeout";
+        }
+
         json j = {{"jobId", globalJobIdToInt(jobId)},
                   {"cluster", clusterName},
                   {"jobState", jobStateMap.at(state)},
